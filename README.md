@@ -11,3 +11,8 @@
 * Create the ***secrets.json*** file in your home folder ***~/.microsoft/usersecrets/playground-netcorejwt/secrets.json*** (you can copy and paste the ***appsettings.json*** file)
 * Replace the ***issuer*** value with your auth0 URL (i.e. [***https://{your_tenant}.auth0.com/***](https://{your_tenant}.auth0.com/))
 * Replace the ***audience*** value with your auth0 audience key (i.e. ***VcKdHxSHmsuWAIMrH5Rwaing816B7zjt***)
+
+## API Routes
+
+* GET /api/values (no Bearer token is needed)
+* GET /api/protected (a Bearer token is needed)
