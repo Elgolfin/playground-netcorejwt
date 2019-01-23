@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -27,11 +28,13 @@ namespace playground_netcorejwt
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(
-                options => {
-                    options.Authority = Configuration.GetValue<string>("Authentication:auth0:issuer");
-                    options.Audience = Configuration.GetValue<string>("Authentication:auth0:audience");
-                }
+            services.AddAuthentication()
+                .AddCookie()
+                .AddJwtBearer(
+                    options => {
+                        options.Authority = Configuration.GetValue<string>("Authentication:auth0:issuer");
+                        options.Audience = Configuration.GetValue<string>("Authentication:auth0:audience");
+                    }
             );
         }
 
