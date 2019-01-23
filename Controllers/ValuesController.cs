@@ -27,8 +27,9 @@ namespace playground_netcorejwt.Controllers
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody] string value)
+        public ActionResult<string> Post(string response)
         {
+            return response;
         }
 
         // PUT api/values/5
