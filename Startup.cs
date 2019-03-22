@@ -29,7 +29,14 @@ namespace playground_netcorejwt
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.Configure<CookiePolicyOptions>(options =>
+            {
+                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+                options.CheckConsentNeeded = context => true;
+                options.MinimumSameSitePolicy = SameSiteMode.None;
+            });
+
+            // Add authentication services
             services.AddAuthentication(options => {
                 options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -40,6 +47,7 @@ namespace playground_netcorejwt
                 options => {
                     options.Authority = Configuration.GetValue<string>("Authentication:auth0:issuer");
                     options.Audience = Configuration.GetValue<string>("Authentication:auth0:audience");
+                    options.SaveToken = true;
                 }
             )
             .AddOpenIdConnect("Auth0", options => {
@@ -56,19 +64,28 @@ namespace playground_netcorejwt
                 // Configure the scope
                 options.Scope.Clear();
                 options.Scope.Add("openid");
+                options.Scope.Add("profile");
+                options.Scope.Add("email");
 
-                // Set the callback path, so Auth0 will call back to https://localhost:5001/signin-auth0
-                // Also ensure that you have added the URL as an Allowed Callback URL in your Auth0 dashboard
+                // Set the callback path, so Auth0 will call back to http://localhost:5000/signin-auth0 
+                // Also ensure that you have added the URL as an Allowed Callback URL in your Auth0 dashboard 
                 options.CallbackPath = new PathString("/signin-auth0");
 
                 // Configure the Claims Issuer to be Auth0
                 options.ClaimsIssuer = "Auth0";
-
-                // Saves tokens to the AuthenticationProperties
                 options.SaveTokens = true;
 
                 options.Events = new OpenIdConnectEvents
                 {
+                    OnRedirectToIdentityProvider = context =>
+                    {
+                        if (context.Properties.Items.ContainsKey("connection")) {
+                            context.ProtocolMessage.SetParameter("connection", context.Properties.Items["connection"]);
+                        }
+                        context.ProtocolMessage.SetParameter("audience", Configuration.GetValue<string>("Authentication:auth0:audience"));
+
+                        return Task.FromResult(0);
+                    },
                     // handle the logout redirection 
                     OnRedirectToIdentityProviderForSignOut = (context) =>
                     {
@@ -91,8 +108,12 @@ namespace playground_netcorejwt
 
                         return Task.CompletedTask;
                     }
-                };
+                };   
             });
+
+            // Add framework services.
+            services.AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -104,17 +125,21 @@ namespace playground_netcorejwt
             }
             else
             {
+                app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
             }
 
-            app.UseAuthentication();
             app.UseHttpsRedirection();
+            app.UseStaticFiles();
             app.UseCookiePolicy();
+
+            app.UseAuthentication();
+
             app.UseMvc(routes =>
             {
                 routes.MapRoute(
                     name: "default",
-                    template: "{controller=Home}/{action=Index}");
+                    template: "{controller=Home}/{action=Index}/{id?}");
             });
         }
     }
